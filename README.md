@@ -1,0 +1,1 @@
+GameBase is a Django app for tracking game collections, reviews and prices.
