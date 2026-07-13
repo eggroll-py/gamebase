@@ -6,7 +6,7 @@ class Game(models.Model):
     igdb_id = models.IntegerField(unique=True)
     title = models.TextField()
     slug = models.SlugField(unique=True)
-    cover_url = models.URLField(blank=True)
+    cover_url = models.URLField(blank=True, null=True)
     summary = models.TextField(blank=True)
     release_date = models.DateField(null=True)
     igdb_rating = models.DecimalField(max_digits=3, decimal_places=1, null=True)
