@@ -4,6 +4,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Game(models.Model):
     igdb_id = models.IntegerField(unique=True)
+    steam_id = models.IntegerField(null=True, blank=True, db_index=True)
+    itad_slug = models.CharField(max_length=100, null=True, blank=True)
     title = models.TextField()
     slug = models.SlugField(unique=True)
     cover_url = models.URLField(blank=True, null=True)
@@ -11,7 +13,7 @@ class Game(models.Model):
     release_date = models.DateField(null=True)
     igdb_rating = models.DecimalField(max_digits=3, decimal_places=1, null=True)
     platforms = models.ManyToManyField('Platform')
-    genres = models.ManyToManyField('Genre')
+    genres = models.ManyToManyField('Genre', related_name='games')
     last_synced = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -88,11 +90,15 @@ class Store(models.TextChoices):
 class PriceEntry(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     store = models.TextField(choices=Store.choices)
-    price = models.DecimalField
+    price = models.DecimalField(max_digits=8, decimal_places=2, null=True)
     currency = models.TextField(default='EUR')
+    url = models.URLField()
     fetched_at = models.DateTimeField(auto_now_add=True)
     is_on_sale = models.BooleanField(default=False)
     original_price = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+
+    class Meta:
+        unique_together = ('game', 'store')
 
     def __str__(self):
         return f'{self.game} - {self.price}'

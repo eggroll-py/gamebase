@@ -7,6 +7,7 @@ router.register('games', api_views.GameViewSet, basename='games')
 router.register('collection', api_views.CollectionEntryViewSet, basename='collection')
 router.register('reviews', api_views.ReviewViewSet, basename='reviews')
 router.register('sessions', api_views.PlaySessionViewSet, basename='session')
+router.register('prices', api_views.PriceEntryViewSet, basename='prices')
 
 urlpatterns = [
     path('games/search/', api_views.GameSearchView.as_view(), name='game-search')

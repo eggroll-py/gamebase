@@ -52,6 +52,10 @@ def import_game_from_igdb_data(game_data):
         game.slug = slug
         game.save()
 
+    external_ids = igdb_client.get_external_ids(game.igdb_id)
+    if external_ids['steam_id'] is not None:
+        game.steam_id = external_ids['steam_id']
+        game.save()
     return game
 
 def search_and_import(query):

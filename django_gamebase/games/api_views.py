@@ -3,11 +3,12 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Sum, Min, Max
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Game, Review, CollectionEntry, PlaySession
-from .serializers import GameListSerializer, GameDetailSerializer, ReviewSerializer, CollectionEntrySerializer, PlaySessionSerializer
+from .models import Game, Review, CollectionEntry, PlaySession, PriceEntry
+from .serializers import GameListSerializer, GameDetailSerializer, ReviewSerializer, CollectionEntrySerializer, PlaySessionSerializer, PriceEntrySerializer
 from .igdb_import import search_and_import
 
 class GameSearchView(APIView):
@@ -60,6 +61,41 @@ def reviews(self, request, pk=None):
         'review_count': reviews.count(),
         'reviews': serializer.data
     })
+
+@action(detail=True, methods=['get'], url_path='price-summary')
+def price_summary(self, request, pk=None):
+    game = self.get_object()
+    entries = PriceEntry.objects.filter(game=game)
+
+    if not entries.exists():
+        return Response(f'No price entries for {game.title} yet')
+
+    aggregates = entries.aggregate(
+        lowest=Min('price'),
+        highest=Max('price'),
+        last_updated=Max('fetched_at'))
+
+    on_sale_count = entries.filter(is_on_sale=True).count()
+    stores = [{
+        'store': entry.store,
+        'price': entry.price,
+        'is_on_sale': entry.is_on_sale,
+        'url': entry.url
+    } for entry in entries.order_by('price')]
+
+    return Response({
+        'game_title': game.title,
+        'lowest_price': aggregates['lowest'],
+        'highest_price': aggregates['highest'],
+        'on_sale_count': on_sale_count,
+        'stores': stores,
+        'last_updated': aggregates['last_updated']
+    })
+
+
+
+
+
 
 class CollectionEntryViewSet(ModelViewSet):
     # /api/collection/
@@ -119,6 +155,17 @@ class PlaySessionViewSet(ModelViewSet):
             'total_minutes': total_minutes,
             'games_played': games_played
         })
+
+class PriceEntryViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = PriceEntrySerializer
+    http_method_names = ['get', 'head', 'options']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['game']
+
+    def get_queryset(self):
+        return PriceEntry.objects.select_related('game').all()
+
 
 
 

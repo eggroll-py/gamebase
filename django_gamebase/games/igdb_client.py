@@ -59,6 +59,27 @@ def get_game_by_igdb_id(igdb_id):
     else:
         return _parse_game(results[0])
 
+def get_external_ids(igdb_id):
+    query_body = f"""
+                fields uid, external_game_source;
+                where game = {igdb_id};
+                """
+    response = requests.post(f'{BASE_URL}/external_games',
+                             headers=_get_headers(),
+                             data=query_body)
+    response.raise_for_status()
+    results = {'steam_id': None, 'itad_slug': None}
+
+    for item in response.json():
+        if item.get('external_game_source') == 1:
+            try:
+                results['steam_id'] = int(item['uid'])
+            except (ValueError, TypeError):
+                pass
+    return results
+
+
+
 def _parse_game(raw):
     release_date = None
 

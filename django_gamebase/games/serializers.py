@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Game, Platform, Genre, CollectionEntry, GameStatus, Review, PlaySession
+from .models import Game, Platform, Genre, CollectionEntry, GameStatus, Review, PlaySession, PriceEntry
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,13 +20,22 @@ class GameListSerializer(serializers.ModelSerializer):
 
         fields = ['id', 'igdb_id', 'title', 'slug', 'cover_url', 'release_date', 'igdb_rating', 'genres', 'platforms']
 
+class PriceEntrySerializer(serializers.ModelSerializer):
+    game_title = serializers.CharField(source='game.title')
+
+    class Meta:
+        model = PriceEntry
+        fields = ['id', 'game_title', 'store', 'price', 'original_price', 'currency', 'is_on_sale', 'fetched_at', 'url']
+        read_only_fields = fields
+
 class GameDetailSerializer(serializers.ModelSerializer):
 
     genres = GenreSerializer(many=True, read_only=True)
     platforms = PlatformSerializer(many=True, read_only=True)
+    prices = PriceEntrySerializer(many=True, read_only=True, source='priceentry_Set')
     class Meta:
         model = Game
-        fields = ['id', 'igdb_id', 'title', 'slug', 'cover_url', 'summary', 'release_date', 'igdb_rating', 'genres', 'platforms', 'last_synced']
+        fields = ['id', 'igdb_id', 'title', 'slug', 'cover_url', 'summary', 'release_date', 'igdb_rating', 'genres', 'platforms', 'last_synced', 'prices']
 
 class CollectionEntrySerializer(serializers.ModelSerializer):
     game = GameListSerializer(read_only=True)
@@ -71,6 +80,8 @@ class PlaySessionSerializer(serializers.ModelSerializer):
         if start and end and start >= end:
             return serializers.ValidationError('Start time cannot be greater than End time')
         return data
+
+
 
 
 
