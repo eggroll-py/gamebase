@@ -46,6 +46,15 @@ class CollectionEntrySerializer(serializers.ModelSerializer):
         fields = ['id', 'game', 'game_id', 'status', 'added_at', 'updated_at']
         read_only_fields = ['id', 'added_at', 'updated_at']
 
+    def validate(self, attrs):
+        user = self.context['request'].user
+        game = attrs['game']
+
+        if CollectionEntry.objects.filter(user=user, game=game).exists():
+            raise serializers.ValidationError('This game is already in your collection')
+        return attrs
+
+
     def validate_status(self, value):
         valid = GameStatus.values
         if value not in valid:

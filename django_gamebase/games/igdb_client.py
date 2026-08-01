@@ -54,7 +54,7 @@ def get_game_by_igdb_id(igdb_id):
     response.raise_for_status()
     results = response.json()
 
-    if results is None:
+    if not results:
         return None
     else:
         return _parse_game(results[0])

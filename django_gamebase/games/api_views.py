@@ -20,11 +20,14 @@ class GameSearchView(APIView):
         if not query:
             return Response({'error': 'Search query "q" is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if len(query) < 2:
+            return Response({'error': 'Search query must be at least 2 characters'}, status=status.HTTP_400_BAD_REQUEST)
+
         local_results = Game.objects.filter(title__icontains=query).prefetch_related('genres', 'platforms')
 
         if local_results.exists():
             serializer = GameListSerializer(local_results, many=True)
-            return Response({'source': local_results,
+            return Response({'source': 'cached',
                          'results': serializer.data})
 
         try:

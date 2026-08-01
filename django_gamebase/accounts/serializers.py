@@ -22,7 +22,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['username', 'email', 'date_joined']
 
     def get_stats(self, obj):
-        gbs_query = CollectionEntry.objects.values('status').filter(user=obj).annotate(Count('id'))
+        gbs_query = CollectionEntry.objects.values('status').filter(user=obj).annotate(count=Count('id'))
         games_by_status = {item['status']: item['count'] for item in gbs_query}
         total_games = sum(games_by_status.values())
         total_sessions = PlaySession.objects.filter(user=obj).aggregate(total=Count('id'), duration_minutes=Sum('duration_minutes'))
