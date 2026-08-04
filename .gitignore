@@ -1,5 +1,4 @@
-django_gamebase/.venv/
-fastapi_gamebase/.venv/
+**/.venv/
 **/__pycache__/
 **/*.pyc
 **/.env
