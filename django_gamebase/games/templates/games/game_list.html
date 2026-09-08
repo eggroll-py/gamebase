@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1>Games</h1>
+<form method="get">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search games...">
+    <button type="submit">Search</button>
+</form>
+
+<ul>
+{% for game in games %}
+    <li>
+        <a href="{% url 'game-detail' game.id %}">{{ game.title }}</a>
+        {% if game.release_date %}({{ game.release_date|date:"Y" }}){% endif %}
+    </li>
+{% empty %}
+    <li>No games found.</li>
+{% endfor %}
+</ul>
+{% endblock %}

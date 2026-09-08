@@ -1,4 +1,6 @@
 from . import igdb_client
+from .psn_client import resolve_psn_product_id
+from .eshop_client import resolve_eshop_id
 from .models import Game,Genre,Platform
 from django.utils import timezone
 
@@ -53,9 +55,17 @@ def import_game_from_igdb_data(game_data):
         game.save()
 
     external_ids = igdb_client.get_external_ids(game.igdb_id)
-    if external_ids['steam_id'] is not None:
-        game.steam_id = external_ids['steam_id']
-        game.save()
+    game.steam_id = external_ids['steam_id']
+
+    if external_ids['psn_id'] is not None:
+        game.psn_id = external_ids['psn_id']
+        game.psn_product_id = resolve_psn_product_id(str(game.psn_id), game.title)
+
+    eshop_data = resolve_eshop_id(game)
+    game.eshop_id = eshop_data['eshop_id']
+    game.eshop_verified = eshop_data['eshop_verified']
+    game.eshop_url = eshop_data['eshop_url']
+    game.save()
     return game
 
 def search_and_import(query):

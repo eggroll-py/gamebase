@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>My Collection</h1>
+<ul>
+{% for entry in collection %}
+    <li>
+        <a href="{% url 'game-detail' entry.game.id %}">{{ entry.game.title }}</a>
+        — {{ entry.get_status_display }}
+    </li>
+{% empty %}
+    <li>Your collection is empty.</li>
+{% endfor %}
+</ul>
+{% endblock %}

@@ -4,6 +4,8 @@ from decouple import config
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+AUTH_PASSWORD_VALIDATORS = []
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",

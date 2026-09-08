@@ -1,9 +1,31 @@
 import requests
 from decouple import config
+import json
 
 BASE_URL = "https://api.igdb.com/v4"
 CLIENT_ID = config('IGDB_CLIENT_ID')
 ACCESS_TOKEN = config('IGDB_ACCESS_TOKEN')
+
+
+def igdb_debug(endpoint, query):
+    response = requests.post(f'{BASE_URL}/{endpoint}',
+                             headers=_get_headers(),
+                             data=query)
+
+    response.raise_for_status()
+    data = response.json()
+    print(data)
+
+def igdb_new_access_token():
+    TOKEN_URL = "https://id.twitch.tv/oauth2/token"
+    response = requests.post(TOKEN_URL,
+                             data={
+                                 'client_id': config('IGDB_CLIENT_ID'),
+                                 'client_secret': config('IGDB_CLIENT_SECRET'),
+                                 'grant_type': 'client_credentials'
+                             })
+    print(response.json())
+
 
 def _get_headers():
     return {'Client-ID': CLIENT_ID,
@@ -54,28 +76,47 @@ def get_game_by_igdb_id(igdb_id):
     response.raise_for_status()
     results = response.json()
 
+
     if not results:
         return None
     else:
         return _parse_game(results[0])
 
+EXTERNAL_SOURCE_MAP = {
+    1: 'steam_id',
+    5: 'gog_id',
+    20: 'amazon_id',
+    36: 'psn_id'
+}
+
+NUMERIC_FIELDS = {'steam_id'}
+
 def get_external_ids(igdb_id):
+    source_ids = tuple(EXTERNAL_SOURCE_MAP.keys())
     query_body = f"""
                 fields uid, external_game_source;
-                where game = {igdb_id};
+                where game = {igdb_id} & external_game_source = {source_ids}; limit 500;
                 """
     response = requests.post(f'{BASE_URL}/external_games',
                              headers=_get_headers(),
                              data=query_body)
     response.raise_for_status()
-    results = {'steam_id': None, 'itad_slug': None}
+    print(json.dumps(response.json(), indent=2))
+    results = {'steam_id': None, 'psn_id': None}
 
     for item in response.json():
-        if item.get('external_game_source') == 1:
-            try:
-                results['steam_id'] = int(item['uid'])
-            except (ValueError, TypeError):
-                pass
+        source = item.get('external_game_source')
+        field_name = EXTERNAL_SOURCE_MAP.get(source)
+        if field_name:
+            raw_value = item.get('uid')
+            if field_name in NUMERIC_FIELDS:
+                try:
+                    results[field_name] = int(item['uid'])
+                except (ValueError, TypeError):
+                    pass
+            else:
+                results[field_name] = raw_value
+
     return results
 
 

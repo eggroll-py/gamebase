@@ -5,7 +5,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class Game(models.Model):
     igdb_id = models.IntegerField(unique=True)
     steam_id = models.IntegerField(null=True, blank=True, db_index=True)
-    itad_slug = models.CharField(max_length=100, null=True, blank=True)
+    psn_id = models.CharField(max_length=100, null=True, blank=True)
+    psn_product_id = models.CharField(max_length=100, null=True, blank=True)
+    eshop_id = models.CharField(max_length=100, null=True, blank=True)
+    eshop_verified = models.BooleanField(default=False)
+    eshop_url = models.URLField(null=True, blank=True)
     title = models.TextField()
     slug = models.SlugField(unique=True)
     cover_url = models.URLField(blank=True, null=True)
@@ -102,6 +106,21 @@ class PriceEntry(models.Model):
 
     def __str__(self):
         return f'{self.game} - {self.price}'
+
+class PriceHistory(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    store = models.TextField(choices=Store.choices)
+    price = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    currency = models.TextField(default='EUR')
+    recorded_at = models.DateTimeField(auto_now_add=True)
+    is_on_sale = models.BooleanField(default=False)
+    original_price = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+
+    class Meta:
+        ordering = ['-recorded_at']
+
+    def __str__(self):
+        return f'{self.game} - {self.price} @ {self.recorded_at}'
 
 
 

@@ -3,7 +3,9 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/django_gamebase" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fastapi_gamebase" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/django_gamebase/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/fastapi_gamebase/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.14 (GameBase)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

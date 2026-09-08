@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ game.title }}</h1>
+{% if game.cover_url %}<img src="{{ game.cover_url }}" alt="{{ game.title }}" width="200">{% endif %}
+<p>{{ game.summary }}</p>
+
+<h2>Prices</h2>
+<ul>
+{% for price in prices %}
+    <li>
+        <strong>{{ price.get_store_display }}</strong>:
+        {{ price.price }} {{ price.currency }}
+        {% if price.is_on_sale %}(was {{ price.original_price }} {{ price.currency }}){% endif %}
+        — <a href="{{ price.url }}">View</a>
+        <small>(checked {{ price.fetched_at }})</small>
+    </li>
+{% empty %}
+    <li>No price data yet.</li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'game-list' %}">Back to search</a>
+
+{% endblock %}

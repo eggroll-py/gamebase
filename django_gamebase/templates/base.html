@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>GameBase</title></head>
+<body>
+    <nav>
+        <a href="{% url 'game-list' %}">Games</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'my-collection' %}">My Collection</a>
+            <span>Logged in as {{ user.username }}</span>
+            <form method="post" action="{% url 'logout' %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit">Log Out</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Log In</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>

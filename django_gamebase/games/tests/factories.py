@@ -1,7 +1,7 @@
 import factory
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from games.models import Game, Review, CollectionEntry, PlaySession
+from games.models import Game, Review, CollectionEntry, PlaySession, Platform
 
 User = get_user_model()
 
@@ -47,6 +47,14 @@ class PlaySessionFactory(factory.django.DjangoModelFactory):
     game = factory.SubFactory(GameFactory)
     started_at = factory.LazyFunction(timezone.now)
     duration_minutes = 60
+
+class PlatformFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Platform
+
+    igdb_id = factory.Sequence(lambda n: n+2000)
+    name = factory.Sequence(lambda n: f'Platform {n}')
+    slug = factory.LazyAttribute(lambda o: o.name.lower().replace(' ', '-'))
 
 
 

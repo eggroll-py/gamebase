@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ profile_owner.username }}</h1>
+{% if can_view %}
+    <p>{{ profile_owner.bio }}</p>
+    <p>Total games: {{ stats.total_games }}</p>
+    <p>Favourite genre: {{ stats.favourite_genre|default:"None yet" }}</p>
+    <p>Total playtime: {{ stats.total_minutes }} minutes</p>
+{% else %}
+    <p>This profile is private.</p>
+{% endif %}
+{% endblock %}
