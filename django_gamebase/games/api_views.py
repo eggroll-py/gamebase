@@ -1,20 +1,22 @@
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from django.db.models import Avg, Sum, Min, Max
+from django.db.models import Avg, Sum, Min, Max, prefetch_related_objects
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Game, Review, CollectionEntry, PlaySession, PriceEntry
 from .serializers import GameListSerializer, GameDetailSerializer, ReviewSerializer, CollectionEntrySerializer, PlaySessionSerializer, PriceEntrySerializer
 from .igdb_import import search_and_import
+from .embeddings import get_avg_recommendations, get_clustered_recommendations, get_mixed_reccs, get_similar_games
 
-class GameSearchView(APIView):
+class GameSearchView(GenericAPIView):
     #GET /api/games/search/?q=query
+    serializer_class = GameListSerializer
     def get(self, request):
-        permission_classes = [IsAuthenticatedOrReadOnly]
         query = request.query_params.get('q', '').strip()
 
         if not query:
@@ -26,7 +28,7 @@ class GameSearchView(APIView):
         local_results = Game.objects.filter(title__icontains=query).prefetch_related('genres', 'platforms')
 
         if local_results.exists():
-            serializer = GameListSerializer(local_results, many=True)
+            serializer = self.get_serializer(local_results, many=True)
             return Response({'source': 'cached',
                          'results': serializer.data})
 
@@ -35,13 +37,14 @@ class GameSearchView(APIView):
         except Exception as e:
             return Response({'error': 'Could not reach IGDB. Please try again later'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        serializer = GameListSerializer(games, many=True)
+        prefetch_related_objects(games, 'genres', 'platforms')
+        serializer = self.get_serializer(games, many=True)
         return Response({'source': 'igdb',
                          'results': serializer.data})
 
 class GameViewSet(ModelViewSet):
     queryset = Game.objects.prefetch_related('genres', 'platforms').all()
-    permission_class = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -104,6 +107,8 @@ class CollectionEntryViewSet(ModelViewSet):
     # /api/collection/
     serializer_class = CollectionEntrySerializer
     permission_classes = [IsAuthenticated]
+    queryset = CollectionEntry.objects.none()
+
     def get_queryset(self):
         return CollectionEntry.objects.filter(user=self.request.user).select_related('game').prefetch_related('game__genres', 'game__platforms')
     
@@ -139,6 +144,7 @@ class ReviewViewSet(ModelViewSet):
 class PlaySessionViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = PlaySessionSerializer
+    queryset = PlaySession.objects.none()
 
     def get_queryset(self):
         return PlaySession.objects.filter(user=self.request.user).select_related('game').order_by('-started_at')
@@ -148,7 +154,7 @@ class PlaySessionViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
-        sessions = PlaySession.objects.filter(user=self.request.user).all()
+        sessions = PlaySession.objects.filter(user=self.request.user)
         total_sessions = sessions.count()
         total_minutes = sessions.aggregate(Sum('duration_minutes'))['duration_minutes__sum'] or 0
         games_played = sessions.values('game').distinct().count()
@@ -168,6 +174,53 @@ class PriceEntryViewSet(ModelViewSet):
 
     def get_queryset(self):
         return PriceEntry.objects.select_related('game').all()
+
+
+class AVGRecommendationsView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GameListSerializer
+
+    def get(self, request):
+        games = get_avg_recommendations(request.user)
+        prefetch_related_objects(games, 'genres', 'platforms')
+        serializer = self.get_serializer(games, many=True)
+        return Response(serializer.data)
+
+class ClusteredRecommendationsView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GameListSerializer
+
+    def get(self, request):
+        clusters = get_clustered_recommendations(request.user)
+        all_games = [game for cluster in clusters for game in cluster]
+        prefetch_related_objects(all_games, 'genres', 'platforms')
+        serialized = [self.get_serializer(cluster, many=True).data for cluster in clusters]
+        return Response(serialized)
+
+class MixedRecommendationsView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GameListSerializer
+
+    def get(self, request):
+        games = get_mixed_reccs(request.user)
+        prefetch_related_objects(games, 'genres', 'platforms')
+        serializer = self.get_serializer(games, many=True)
+        return Response(serializer.data)
+
+class SimilarGamesView(GenericAPIView):
+    serializer_class = GameListSerializer
+
+    def get(self, request, game_id):
+        game = get_object_or_404(Game, id=game_id)
+        results = get_similar_games(game)
+        prefetch_related_objects(results, 'genres', 'platforms')
+        serializer = self.get_serializer(results, many=True)
+        return Response(serializer.data)
+
+
+
+
+
 
 
 

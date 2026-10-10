@@ -43,8 +43,8 @@ def _build_cover_url(url):
 def search_games(query, limit=10):
     query_body = f"""
             fields id, name, summary, cover.url,
-               first_release_date, rating,
-               genres.id, genres.name, genres.slug,
+               first_release_date, rating, game_type,
+               genres.id, genres.name, genres.slug, parent_game,
                platforms.id, platforms.name, platforms.slug;
             search "{query}";
             limit {limit};
@@ -64,9 +64,10 @@ def search_games(query, limit=10):
 def get_game_by_igdb_id(igdb_id):
     query_body = f"""
                 fields id, name, summary, cover.url,
-               first_release_date, rating,
+               first_release_date, rating, game_type,
                genres.id, genres.name, genres.slug,
-               platforms.id, platforms.name, platforms.slug;
+               platforms.id, platforms.name, platforms.slug,
+               themes.id, themes.name, themes.slug, parent_game, bundles, version_parent;
                 
                 where id = {igdb_id};
                 """
@@ -76,11 +77,32 @@ def get_game_by_igdb_id(igdb_id):
     response.raise_for_status()
     results = response.json()
 
-
     if not results:
         return None
     else:
         return _parse_game(results[0])
+
+def get_games_by_igdb_ids(igdb_ids):
+    igdb_ids_str = ', '.join(str(igdb_id) for igdb_id in igdb_ids)
+
+    query_body = f"""
+                fields id, name, summary, cover.url,
+               first_release_date, rating,
+               genres.id, genres.name, genres.slug, game_type, 
+               platforms.id, platforms.name, platforms.slug,
+               themes.id, themes.name, themes.slug, bundles, parent_game, version_parent;
+                
+                where id = ({igdb_ids_str}); limit 500;
+                   """
+    response = requests.post(f'{BASE_URL}/games',
+                             headers=_get_headers(),
+                             data=query_body)
+    response.raise_for_status()
+    results = response.json()
+
+
+
+    return [_parse_game(game) for game in results]
 
 EXTERNAL_SOURCE_MAP = {
     1: 'steam_id',
@@ -101,7 +123,6 @@ def get_external_ids(igdb_id):
                              headers=_get_headers(),
                              data=query_body)
     response.raise_for_status()
-    print(json.dumps(response.json(), indent=2))
     results = {'steam_id': None, 'psn_id': None}
 
     for item in response.json():
@@ -128,9 +149,16 @@ def _parse_game(raw):
         from datetime import datetime, timezone
         release_date = datetime.fromtimestamp(raw['first_release_date'], tz=timezone.utc).date()
 
+
+
+
     return {
         'igdb_id': raw['id'],
         'title': raw['name'],
+        'parent_game': raw.get('parent_game'),
+        'version_parent': raw.get('version_parent'),
+        'bundle_ids': raw.get('bundles', []),
+        'game_type': raw.get('game_type'),
         'summary': raw.get('summary', ""),
         'cover_url': _build_cover_url(raw.get('cover', {}).get('url')),
         'release_date': release_date,
@@ -142,6 +170,13 @@ def _parse_game(raw):
                 'slug': g['slug']
             }
             for g in raw.get('genres', [])
+        ],'themes': [
+            {
+                'igdb_id': t['id'],
+                'name': t['name'],
+                'slug': t['slug']
+            }
+            for t in raw.get('themes', [])
         ],
         'platforms': [
             {

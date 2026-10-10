@@ -43,7 +43,7 @@ def resolve_eshop_id(game) -> dict:
         if score > best_score:
             best_hit, best_score, best_matching_title = hit, score, title_match
 
-        # print(best_hit, best_score, best_matching_title)
+
 
     if best_hit is None:
         return {'eshop_id': None, 'eshop_verified': False, 'eshop_url': None}

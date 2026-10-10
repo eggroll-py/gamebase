@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Game, Platform, Genre, CollectionEntry, GameStatus, Review, PlaySession, PriceEntry
+from .services import convert_price
+from decimal import Decimal
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,17 +24,29 @@ class GameListSerializer(serializers.ModelSerializer):
 
 class PriceEntrySerializer(serializers.ModelSerializer):
     game_title = serializers.CharField(source='game.title')
+    display_price = serializers.SerializerMethodField()
+
 
     class Meta:
         model = PriceEntry
-        fields = ['id', 'game_title', 'store', 'price', 'original_price', 'currency', 'is_on_sale', 'fetched_at', 'url']
+        fields = ['id', 'game_title', 'store', 'price', 'original_price', 'display_price', 'currency', 'is_on_sale', 'fetched_at', 'url']
         read_only_fields = fields
+
+    def get_display_price(self, obj) -> Decimal:
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            target_currency = request.user.preferred_currency
+        else:
+            target_currency = obj.currency
+
+        converted = convert_price(obj.price, obj.currency, target_currency)
+        return {'amount': converted, 'currency': target_currency}
 
 class GameDetailSerializer(serializers.ModelSerializer):
 
     genres = GenreSerializer(many=True, read_only=True)
     platforms = PlatformSerializer(many=True, read_only=True)
-    prices = PriceEntrySerializer(many=True, read_only=True, source='priceentry_Set')
+    prices = PriceEntrySerializer(many=True, read_only=True, source='priceentry_set')
     class Meta:
         model = Game
         fields = ['id', 'igdb_id', 'title', 'slug', 'cover_url', 'summary', 'release_date', 'igdb_rating', 'genres', 'platforms', 'last_synced', 'prices']

@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from pgvector.django import VectorField
+from .choices import GameStatus, Store, GameType
 
 class Game(models.Model):
     igdb_id = models.IntegerField(unique=True)
@@ -11,14 +13,19 @@ class Game(models.Model):
     eshop_verified = models.BooleanField(default=False)
     eshop_url = models.URLField(null=True, blank=True)
     title = models.TextField()
-    slug = models.SlugField(unique=True)
+    parent_game = models.ForeignKey('self', null=True, blank=True, on_delete= models.SET_NULL, related_name='child_games')
+    bundles = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='bundled_games')
+    slug = models.SlugField(unique=True, max_length=255)
     cover_url = models.URLField(blank=True, null=True)
     summary = models.TextField(blank=True)
     release_date = models.DateField(null=True)
     igdb_rating = models.DecimalField(max_digits=3, decimal_places=1, null=True)
+    game_type = models.IntegerField(choices = GameType.choices, null=True, blank=True)
     platforms = models.ManyToManyField('Platform')
     genres = models.ManyToManyField('Genre', related_name='games')
+    themes = models.ManyToManyField('Theme', related_name='games')
     last_synced = models.DateTimeField(auto_now=True)
+    embedding = VectorField(dimensions=384, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -37,12 +44,14 @@ class Genre(models.Model):
     def __str__(self):
         return self.name
 
-class GameStatus(models.TextChoices):
-    PLAYING = 'playing', 'Playing'
-    COMPLETED = 'completed', 'Completed'
-    DROPPED = 'dropped', 'Dropped'
-    WANT = 'want', 'Want'
-    BACKLOG = 'backlog', 'Backlog'
+class Theme(models.Model):
+    igdb_id = models.IntegerField(unique=True)
+    name = models.TextField()
+    slug = models.SlugField(unique=True)
+    def __str__(self):
+        return self.name
+
+
 
 class CollectionEntry(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -84,11 +93,6 @@ class Review(models.Model):
     def __str__(self):
         return f'{self.game} - {self.rating}'
 
-class Store(models.TextChoices):
-    STEAM = 'steam', 'Steam'
-    PSN = 'psn', 'PSN'
-    NINTENDO = 'nintendo', 'Nintendo'
-    XBOX = 'xbox', 'Xbox'
 
 
 class PriceEntry(models.Model):

@@ -2,3 +2,4 @@
 **/__pycache__/
 **/*.pyc
 **/.env
+/django_gamebase/games/igdb_ref.py

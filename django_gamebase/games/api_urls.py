@@ -10,6 +10,11 @@ router.register('sessions', api_views.PlaySessionViewSet, basename='session')
 router.register('prices', api_views.PriceEntryViewSet, basename='prices')
 
 urlpatterns = [
-    path('games/search/', api_views.GameSearchView.as_view(), name='game-search')
+    path('games/search/', api_views.GameSearchView.as_view(), name='game-search'),
+    path('recommendations/avg', api_views.AVGRecommendationsView.as_view()),
+    path('games/<int:game_id>/similar/', api_views.SimilarGamesView.as_view()),
+    path('recommendations/clustered/', api_views.ClusteredRecommendationsView.as_view()),
+    path('recommendations/', api_views.MixedRecommendationsView.as_view())
+
 
 ] + router.urls
